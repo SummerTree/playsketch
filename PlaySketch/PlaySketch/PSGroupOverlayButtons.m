@@ -26,6 +26,7 @@
 	self.visibilityOffButton.hidden = !isVisible;
 	self.visibilityOnButton.hidden = isVisible;
 	self.deleteGroupButton.hidden = NO;
+    self.physicalSystemButton.hidden = NO;
 	
 	//Lay them out dynamically
 	NSArray* allButtons = [NSArray arrayWithObjects:self.recordingButton,
@@ -34,6 +35,7 @@
 													self.visibilityOnButton,
 													self.visibilityOffButton,
 													self.deleteGroupButton,
+                                                    self.physicalSystemButton,
 													nil];
 	CGFloat yOffset = 0;
 	for (UIButton* b in allButtons)

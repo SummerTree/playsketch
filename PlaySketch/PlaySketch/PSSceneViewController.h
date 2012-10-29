@@ -15,11 +15,13 @@
 #import "PSDrawingEventsView.h"
 #import "PSSRTManipulator.h"
 #import "PSPenColorViewController.h"
+#import "PSPhysicsGlobalViewController.h"
 @class PSAnimationRenderingController, PSDrawingDocument, PSTimelineSlider, PSGroupOverlayButtons, PSMotionPathView, PSKeyframeView;
 
 @interface PSSceneViewController : UIViewController <PSDrawingEventsViewDrawingDelegate, 
 														PSSRTManipulatoDelegate,
-														PSPenColorChangeDelegate>
+														PSPenColorChangeDelegate,
+                                                        PSPhysicalGlobalChangeDelegate>
 
 @property(nonatomic,retain) IBOutlet PSAnimationRenderingController* renderingController;
 @property(nonatomic,retain) IBOutlet PSDrawingEventsView* drawingTouchView;
@@ -56,5 +58,9 @@
 - (IBAction)undo:(id)sender;
 - (IBAction)redo:(id)sender;
 - (void)setPlaying:(BOOL)playing;
+
+// physical system
+- (IBAction)showPhysicsPopover:(id)sender;
+- (IBAction)showPhysicsGlobalPopover:(id)sender;
 
 @end

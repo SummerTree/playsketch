@@ -34,9 +34,13 @@
 @property(nonatomic)BOOL isReadyToRecord; // If manipulations should be treated as recording
 @property(nonatomic)BOOL isRecording;
 @property(nonatomic,retain) UIPopoverController* penPopoverController;
+@property(nonatomic,retain) UIPopoverController* physicsGlobalPopoverController;
+@property(nonatomic,retain) PSPhysicsGlobalViewController* physicsGlobalController;
 @property(nonatomic,retain) PSPenColorViewController* penController;
 @property(nonatomic) UInt64 currentColor; // the drawing color as an int
 @property(nonatomic) int penWeight;
+@property(nonatomic) int gravity;
+@property(nonatomic) int wind;
 @property(nonatomic,retain) PSRecordingSession* recordingSession;
 @property(nonatomic)BOOL insideEraseGroup;
 - (void)refreshInterfaceAfterDataChange:(BOOL)dataMayHaveChanged selectionChange:(BOOL)selectionMayHaveChanged;
@@ -82,7 +86,12 @@
 	self.penController.delegate = self;
 	self.penPopoverController = [[UIPopoverController alloc] initWithContentViewController:self.penController];
 	[self.penController setToDefaults];
-	
+    
+    // Initialize physics globals
+	self.physicsGlobalController = [storyboard instantiateViewControllerWithIdentifier:@"PhysicsGlobalController"];
+    self.physicsGlobalController.delegate = self;
+    self.physicsGlobalPopoverController = [[UIPopoverController alloc] initWithContentViewController:self.physicsGlobalController];
+    [self.physicsGlobalController setToDefaults];
 	
 	// initialize our objects to the right time
 	[self.renderingController jumpToTime:self.timelineSlider.value];
@@ -98,6 +107,7 @@
 	self.currentDocument = nil;
 	self.rootGroup = nil;
 	self.penPopoverController = nil;
+    self.physicsGlobalPopoverController = nil;
 	self.penController = nil;
 	self.recordingSession = nil;
 }
@@ -320,6 +330,23 @@
 	[PSSelectionHelper resetSelection];
 	[self refreshInterfaceAfterDataChange:YES selectionChange:YES];
 }
+
+// physical system
+- (IBAction)showPhysicsPopover:(id)sender
+{
+    NSLog(@"Physics");
+}
+
+- (IBAction)showPhysicsGlobalPopover:(id)sender
+{
+    NSLog(@"physicsGlobal");
+	[self.physicsGlobalPopoverController presentPopoverFromRect:[sender frame]
+											   inView:self.view
+							 permittedArrowDirections:UIPopoverArrowDirectionUp
+											 animated:YES];
+	
+}
+
 
 
 /*
@@ -732,10 +759,34 @@
 
 - (void)penWeightChanged:(int)newWeight
 {
+    //NSLog(@"%d", newWeight);
 	self.penWeight = newWeight;
 	[self startDrawing:nil];
 	if(self.penPopoverController && self.penPopoverController.popoverVisible)
 		[self.penPopoverController dismissPopoverAnimated:YES];
+}
+
+/*
+ ----------------------------------------------------------------------------
+ PSPhysicsGlobalViewController methods
+ Called by when our pen colours change
+ ----------------------------------------------------------------------------
+ */
+- (void)gravityChanged:(int)gravity
+{
+    //NSLog(@"%d", gravity);
+    self.gravity = gravity;
+//	[self startDrawing:nil];
+	if(self.physicsGlobalPopoverController && self.physicsGlobalPopoverController.popoverVisible)
+		[self.physicsGlobalPopoverController dismissPopoverAnimated:YES];
+}
+
+- (void)windChanged:(int)wind
+{
+	self.wind = wind;
+//	[self startDrawing:nil];
+	if(self.physicsGlobalPopoverController && self.physicsGlobalPopoverController.popoverVisible)
+		[self.physicsGlobalPopoverController dismissPopoverAnimated:YES];
 }
 
 

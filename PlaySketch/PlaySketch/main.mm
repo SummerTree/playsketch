@@ -15,6 +15,8 @@
 
 #import "PSAppDelegate.h"
 
+#include "../Box2D-new/Include/Box2D.h"
+
 int main(int argc, char *argv[])
 {
     @autoreleasepool {

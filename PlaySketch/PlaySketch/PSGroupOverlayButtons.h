@@ -25,6 +25,9 @@
 @property(nonatomic,retain)IBOutlet UIButton* deleteGroupButton;
 @property(nonatomic) BOOL recordPulsing;
 
+// physical system
+@property(nonatomic,retain)IBOutlet UIButton* physicalSystemButton;
+
 - (void)configureForSelectionCount:(int)count isLeafObject:(BOOL)isLeaf isVisible:(BOOL)isVisible;
 - (void)startRecordingMode;
 - (void)stopRecordingMode;

@@ -33,6 +33,11 @@
 @dynamic parent;
 @synthesize isSelected;
 
+// attributes for physical system
+@dynamic material;
+@dynamic simulationOn;
+@dynamic collisionOn;
+
 
 - (SRTPosition*)positions
 {

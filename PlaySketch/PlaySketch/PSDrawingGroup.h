@@ -38,6 +38,12 @@
 @property (nonatomic, retain) PSDrawingGroup *parent;
 @property (atomic) BOOL isSelected;
 @property () SRTPosition currentCachedPosition;
+
+// new attributes for physical system
+@property (atomic) BOOL simulationOn;
+@property (atomic) BOOL collisionOn;
+@property (nonatomic, retain) NSNumber *material;
+
 @end
 
 
