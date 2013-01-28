@@ -248,7 +248,7 @@ Settings settings;
 		lastWorldTouch=worldPosition;
 		test->MouseDown(b2Vec2(lastWorldTouch.x,lastWorldTouch.y));
 		
-		if (!test->m_mouseJoint) panning=true;
+		//if (!test->m_mouseJoint) panning=true;
 	}
 }
 

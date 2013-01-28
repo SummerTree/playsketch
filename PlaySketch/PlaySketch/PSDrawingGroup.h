@@ -35,14 +35,18 @@
 @property (nonatomic, retain) NSArray *children;
 @property (nonatomic, retain) NSArray *drawingLines;
 @property (nonatomic, retain) NSData *positionsAsData;
+@property (nonatomic, retain) NSData *simPositionsAsData;
 @property (nonatomic, retain) PSDrawingGroup *parent;
 @property (atomic) BOOL isSelected;
 @property () SRTPosition currentCachedPosition;
 
 // new attributes for physical system
-@property (atomic) BOOL simulationOn;
-@property (atomic) BOOL collisionOn;
-@property (nonatomic, retain) NSNumber *material;
+@property (atomic) BOOL isSimulate;
+@property (atomic) BOOL isSolid;
+@property (atomic) BOOL isStatic;
+@property (nonatomic, retain) NSNumber* material;
+@property (atomic) int box2dBodyIndex;
+@property (atomic) int simPositionsIndex;
 
 @end
 
@@ -50,6 +54,7 @@
 @interface PSDrawingGroup (CoreDataGeneratedAccessors)
 
 - (SRTPosition*)positions;
+- (void)resetSimulationPositions;
 - (int)positionCount;
 - (void)setPosition:(SRTPosition)p atIndex:(int)i;
 - (void)doneMutatingPositions;
@@ -57,6 +62,8 @@
 - (void)unpauseAll;
 - (CGPoint)currentOriginInWorldCoordinates;
 - (CGRect)currentBoundingRect;
+- (NSMutableArray*)currentBoundingPoly;
+- (int)penWeight;
 - (GLKMatrix4)currentModelViewMatrix;
 - (BOOL)hitsPoint:(CGPoint)p;
 - (CGPoint)translatePointFromParentCoordinates:(CGPoint)p;

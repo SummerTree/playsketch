@@ -16,12 +16,16 @@
 #import "PSSRTManipulator.h"
 #import "PSPenColorViewController.h"
 #import "PSPhysicsGlobalViewController.h"
+#import "PSPhysicsStateViewController.h"
+#include <Box2D.h>
+
 @class PSAnimationRenderingController, PSDrawingDocument, PSTimelineSlider, PSGroupOverlayButtons, PSMotionPathView, PSKeyframeView;
 
 @interface PSSceneViewController : UIViewController <PSDrawingEventsViewDrawingDelegate, 
 														PSSRTManipulatoDelegate,
 														PSPenColorChangeDelegate,
-                                                        PSPhysicalGlobalChangeDelegate>
+                                                        PSPhysicalGlobalChangeDelegate,
+                                                        PSPhysicalStateChangeDelegate>
 
 @property(nonatomic,retain) IBOutlet PSAnimationRenderingController* renderingController;
 @property(nonatomic,retain) IBOutlet PSDrawingEventsView* drawingTouchView;
@@ -38,7 +42,7 @@
 @property(nonatomic,retain) IBOutlet UIButton* redoButton;
 @property(nonatomic,retain) PSDrawingDocument* currentDocument;
 @property(nonatomic,retain) PSDrawingGroup* rootGroup;
-
+@property b2World* world;
 
 - (IBAction)dismissSceneView:(id)sender;
 - (IBAction)playPressed:(id)sender;
@@ -60,7 +64,9 @@
 - (void)setPlaying:(BOOL)playing;
 
 // physical system
-- (IBAction)showPhysicsPopover:(id)sender;
+- (IBAction)showPhysicsStatePopover:(id)sender;
 - (IBAction)showPhysicsGlobalPopover:(id)sender;
+- (NSMutableArray*)IterativeSimplify:(NSMutableArray*)vertices targetLowNumOfV:(int)tl targetHighNumOfV:(int)th ErrThresholdL:(float)etl ErrThresholdH:(float)eth increment:(int)i;
+- (NSMutableArray*)Simplify:(NSMutableArray*)vertices ErrThreshold:(float)et;
 
 @end

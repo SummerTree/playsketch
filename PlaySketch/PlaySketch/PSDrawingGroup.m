@@ -20,8 +20,10 @@
 @interface PSDrawingGroup ()
 {
 	NSMutableData* _mutablePositionsAsData;
+    NSMutableData* _mutableSimPositionsAsData;
 }
 - (SRTPosition*)mutablePositionBytes;
+- (SRTPosition*)mutableSimPositionBytes;
 @end
 
 @implementation PSDrawingGroup
@@ -30,17 +32,27 @@
 @dynamic children;
 @dynamic drawingLines;
 @dynamic positionsAsData;
+@dynamic simPositionsAsData;
 @dynamic parent;
 @synthesize isSelected;
 
 // attributes for physical system
 @dynamic material;
-@dynamic simulationOn;
-@dynamic collisionOn;
-
+@dynamic isSimulate;
+@dynamic isSolid;
+@dynamic isStatic;
+@synthesize box2dBodyIndex;
+@synthesize simPositionsIndex;
 
 - (SRTPosition*)positions
 {
+    if (self.isSolid) {
+        if (_mutableSimPositionsAsData != nil)
+            return (SRTPosition*)_mutableSimPositionsAsData.bytes;
+        else
+            return (SRTPosition*)self.simPositionsAsData.bytes;
+    }
+    
 	if (_mutablePositionsAsData != nil)
 		return (SRTPosition*)_mutablePositionsAsData.bytes;
 	else
@@ -48,9 +60,25 @@
 	
 }
 
+- (void)resetSimulationPositions
+{
+    if (_mutablePositionsAsData != nil)
+        _mutableSimPositionsAsData = _mutablePositionsAsData;
+    else
+        _mutableSimPositionsAsData = [NSMutableData dataWithData:self.positionsAsData];
+    
+    simPositionsIndex = 0;
+}
 
 - (int)positionCount
 {
+    if (self.isSolid) {
+        if (_mutableSimPositionsAsData != nil)
+            return _mutableSimPositionsAsData.length / sizeof(SRTPosition);
+        else
+            return self.simPositionsAsData.length / sizeof(SRTPosition);
+    }
+    
 	if (_mutablePositionsAsData != nil)
 		return _mutablePositionsAsData.length / sizeof(SRTPosition);
 	else
@@ -71,6 +99,9 @@
 	// Doing this is an atomic action that gets added to the UNDO stack, too!
 	if(_mutablePositionsAsData)
 		self.positionsAsData = _mutablePositionsAsData;
+    
+    if (_mutableSimPositionsAsData)
+        self.simPositionsAsData = _mutableSimPositionsAsData;
 	
 }
 
@@ -125,6 +156,27 @@
 	return CGRectMake(min.x, min.y, max.x - min.x, max.y - min.y);
 }
 
+- (NSMutableArray *)currentBoundingPoly
+{
+    NSMutableArray *bp = [[NSMutableArray alloc] initWithCapacity:0];
+    for (PSDrawingLine* line in self.drawingLines)
+        for (int i = 0; i < line.pathPointCount; i++)
+            [bp addObject:[NSValue valueWithCGPoint: CGPointMake(line.pathPoints[i].x, line.pathPoints[i].y)]];
+    
+    return bp;
+}
+
+- (int)penWeight
+{
+    int pW = 0;
+    for (PSDrawingLine* line in self.drawingLines)
+    {
+        pW = line.penWeight;
+        break;
+    }
+    
+    return pW;
+}
 
 - (GLKMatrix4)currentModelViewMatrix
 {
@@ -318,7 +370,9 @@
 	
 	// Get a handle to a mutable version of our positions list
 	int currentPositionCount = self.positionCount;
-	SRTPosition* currentPositions = [self mutablePositionBytes];
+	SRTPosition* currentPositions = self.isSolid ? [self mutableSimPositionBytes] : [self mutablePositionBytes];
+    
+    SRTPosition* unusedPositions = self.isSolid ? [self mutablePositionBytes] : [self mutableSimPositionBytes];
 	
 
 	// Find the index to insert it at
@@ -334,24 +388,36 @@
 	// Make space for the new entry if necessary
 	if(!overwriting)
 	{
+        [_mutableSimPositionsAsData increaseLengthBy:sizeof(SRTPosition)];
+        
 		[_mutablePositionsAsData increaseLengthBy:sizeof(SRTPosition)];
-		currentPositions = (SRTPosition*)_mutablePositionsAsData.bytes;
+		currentPositions = self.isSolid ? (SRTPosition*)_mutableSimPositionsAsData.bytes : (SRTPosition*)_mutablePositionsAsData.bytes;
+        
+        unusedPositions = self.isSolid ? (SRTPosition*)_mutablePositionsAsData.bytes : (SRTPosition*)_mutableSimPositionsAsData.bytes;
 
 		//Move everything down!
 		memmove(currentPositions + newIndex + 1, 
 				currentPositions + newIndex ,
+				(currentPositionCount - newIndex)*sizeof(SRTPosition));
+        
+        memmove(unusedPositions + newIndex + 1,
+				unusedPositions + newIndex ,
 				(currentPositionCount - newIndex)*sizeof(SRTPosition));
 		
 		currentPositionIndex++;
 	}
 	
 	// If this time is already a keyframe, tag the new position as a keyframe too
-	if(overwriting)
+	if(overwriting) {
 		position.keyframeType = SRTKeyframeAdd2(position.keyframeType,
 												currentPositions[newIndex].keyframeType);
+        position.keyframeType = SRTKeyframeAdd2(position.keyframeType,
+												unusedPositions[newIndex].keyframeType);
+    }
 	
 	//Write the new one
 	currentPositions[newIndex] = position;
+    unusedPositions[newIndex] = position;
 	if (! overwriting) currentPositionCount ++;
 	
 	
@@ -383,6 +449,8 @@
 				float t = currentPositions[i].timeStamp;
 				float pcnt = (t - previousKeyframe.timeStamp)/(position.timeStamp - previousKeyframe.timeStamp);
 				currentPositions[i] = SRTPositionApplyDelta(currentPositions[i], delta, pcnt);
+                
+                unusedPositions[i] = SRTPositionApplyDelta(unusedPositions[i], delta, pcnt);
 			}
 		}
 		
@@ -403,6 +471,8 @@
 				float t = currentPositions[i].timeStamp;
 				float pcnt = 1.0 - (t - position.timeStamp)/(nextKeyframe.timeStamp - position.timeStamp);
 				currentPositions[i] = SRTPositionApplyDelta(currentPositions[i], delta, pcnt);
+                
+                unusedPositions[i] = SRTPositionApplyDelta(unusedPositions[i], delta, pcnt);
 			}
 		}
 
@@ -433,18 +503,21 @@
 	int i = [self addPosition:pos withInterpolation:NO];
 	
 	// STEP 2: Move forward until the next visibility keyframe and change the visibility
-	SRTPosition* positions = [self mutablePositionBytes];
+	SRTPosition* positions = self.isSolid? [self mutableSimPositionBytes] : [self mutablePositionBytes];
+    SRTPosition* unusedPos = self.isSolid? [self mutablePositionBytes] : [self mutableSimPositionBytes];
 	i += 1;
 	while (i < self.positionCount && !SRTKeyframeIsVisibility(positions[i].keyframeType))
 	{
 		positions[i].isVisible = visible;
+        unusedPos[i].isVisible = visible;
 		i++;
 	}
 	
 	// STEP 3:If we ended by hitting the next visibility keyframe, remove it since it is redundant now
-	if(i < self.positionCount)
+	if(i < self.positionCount) {
 		positions[i].keyframeType = SRTKeyframeRemove(positions[i].keyframeType, NO, NO, NO, YES);
-	
+        unusedPos[i].keyframeType = SRTKeyframeRemove(positions[i].keyframeType, NO, NO, NO, YES);
+    }
 	
 	currentSRTPosition = pos;
 }
@@ -598,6 +671,7 @@
 	currentModelViewMatrix = GLKMatrix4Identity;
 	self.isSelected = NO;
 	_mutablePositionsAsData = nil;
+    _mutableSimPositionsAsData = nil;
 	[self unpauseAll];
 }
 
@@ -614,6 +688,8 @@
 	currentModelViewMatrix = GLKMatrix4Identity;
 	self.isSelected = NO;
 	_mutablePositionsAsData = nil;
+    _mutableSimPositionsAsData = nil;
+    self.box2dBodyIndex = -1;
 	[self unpauseAll];
 }
 
@@ -628,6 +704,7 @@
 	[self unpauseAll];
 	self.isSelected = NO;
 	_mutablePositionsAsData = nil;
+    _mutableSimPositionsAsData = nil;
 }
 
 
@@ -642,6 +719,12 @@
 		self.positionsAsData = _mutablePositionsAsData;
 		_mutablePositionsAsData = nil;
 	}
+    
+    if (_mutableSimPositionsAsData != nil)
+    {
+        self.simPositionsAsData = _mutableSimPositionsAsData;
+        _mutableSimPositionsAsData = nil;
+    }
 }
 
 
@@ -651,6 +734,13 @@
 	if ( _mutablePositionsAsData == nil )
 		_mutablePositionsAsData = [NSMutableData dataWithData:self.positionsAsData];
 	return (SRTPosition*)_mutablePositionsAsData.bytes;
+}
+
+- (SRTPosition*)mutableSimPositionBytes
+{
+    if (_mutableSimPositionsAsData == nil)
+        _mutableSimPositionsAsData = [NSMutableData dataWithData:self.simPositionsAsData];
+    return (SRTPosition*)_mutableSimPositionsAsData.bytes;
 }
 
 - (SRTPosition)currentCachedPosition

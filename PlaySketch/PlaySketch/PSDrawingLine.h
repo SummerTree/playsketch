@@ -19,14 +19,18 @@
 @interface PSDrawingLine : NSManagedObject
 
 @property (nonatomic, retain) NSData * pointsAsData;
+@property (nonatomic, retain) NSData * pathPointsAsData;
 @property (nonatomic, retain) NSNumber* color;
 @property (nonatomic, retain) PSDrawingGroup *group;
 @property (nonatomic, readonly) CGPoint* points;
+@property (nonatomic, readonly) CGPoint* pathPoints;
 @property (nonatomic, readonly) int pointCount;
+@property (nonatomic, readonly) int pathPointCount;
 @property (nonatomic) int penWeight;
 @property (atomic) int* selectionHitCounts;
 
 - (void)addPoint:(CGPoint)p;
+- (void)addPathPoint:(CGPoint)p;
 - (void)addLineTo:(CGPoint)to;
 - (void)finishLine;
 - (void)applyTransform:(CGAffineTransform)transform;

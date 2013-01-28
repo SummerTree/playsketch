@@ -26,7 +26,7 @@
 @property(nonatomic) BOOL recordPulsing;
 
 // physical system
-@property(nonatomic,retain)IBOutlet UIButton* physicalSystemButton;
+@property(nonatomic,retain)IBOutlet UIButton* physicalStateButton;
 
 - (void)configureForSelectionCount:(int)count isLeafObject:(BOOL)isLeaf isVisible:(BOOL)isVisible;
 - (void)startRecordingMode;

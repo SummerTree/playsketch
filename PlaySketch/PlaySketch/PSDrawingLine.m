@@ -24,13 +24,16 @@
 @interface PSDrawingLine ()
 {
 	NSMutableData* _mutablePoints;
+    NSMutableData* _mutablePathPoints;
 }
 - (CGPoint*)mutablePointData;
+- (CGPoint*)mutablePathPointData;
 - (void)addCircleAt:(CGPoint)p withSize:(CGFloat)size;
 @end
 
 @implementation PSDrawingLine
 @dynamic pointsAsData;
+@dynamic pathPointsAsData;
 @dynamic color;
 @dynamic group;
 @synthesize selectionHitCounts = _selectionHitCounts;
@@ -45,11 +48,26 @@
 		return (CGPoint*)self.pointsAsData.bytes;
 }
 
+- (CGPoint*)pathPoints
+{
+    if (_mutablePathPoints)
+        return (CGPoint*)_mutablePathPoints.bytes;
+    else
+        return (CGPoint*)self.pathPointsAsData.bytes;
+}
+
 - (CGPoint*)mutablePointData
 {
 	if(_mutablePoints == nil)
 		_mutablePoints = [NSMutableData dataWithData:self.pointsAsData];
 	return [_mutablePoints mutableBytes];
+}
+
+- (CGPoint*)mutablePathPointData
+{
+    if (_mutablePathPoints == nil)
+        _mutablePathPoints = [NSMutableData dataWithData:self.pathPointsAsData];
+    return [_mutablePathPoints mutableBytes];
 }
 
 - (int)pointCount
@@ -58,6 +76,15 @@
 		return _mutablePoints.length / sizeof(CGPoint);
 	else
 		return self.pointsAsData.length / sizeof(CGPoint);
+}
+
+- (int)pathPointCount
+{
+
+    if ( _mutablePoints )
+        return _mutablePathPoints.length / sizeof(CGPoint);
+    else
+        return self.pathPointsAsData.length / sizeof(CGPoint);
 }
 
 
@@ -70,6 +97,11 @@
 	[_mutablePoints appendBytes:&p length:sizeof(CGPoint)];
 }
 
+- (void)addPathPoint:(CGPoint)p
+{
+    [self mutablePathPointData];
+    [_mutablePathPoints appendBytes:&p length:sizeof(CGPoint)];
+}
 
 /*
  Add a new line segment starting at the last point
@@ -78,7 +110,7 @@
 - (void)addLineTo:(CGPoint)to
 {
 	int pointCount = self.pointCount;
-
+    
 	// Deal with the case where we have no 'from' point
 	if(pointCount < 2)
 	{
@@ -136,8 +168,8 @@
 		[self addPoint:fromTop];
 		[self addPoint:toBottom];
 		[self addPoint:toTop];
-		
 	}
+    [self addPathPoint:to];
 }
 
 - (void)finishLine
@@ -192,6 +224,12 @@
 		self.pointsAsData = _mutablePoints;
 		_mutablePoints = nil;
 	}
+    
+    if (_mutablePathPoints != nil)
+    {
+        self.pathPointsAsData = _mutablePathPoints;
+        _mutablePathPoints = nil;
+    }
 }
 
 
@@ -310,6 +348,7 @@
 - (void)doneMutatingPoints
 {
 	self.pointsAsData = _mutablePoints;;
+    self.pathPointsAsData = _mutablePathPoints;
 }
 
 @end
