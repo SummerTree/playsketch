@@ -82,6 +82,8 @@ static b2Vec2 ComputeCentroid(const b2Vec2* vs, int32 count)
 	}
 
 	// Centroid
+    //printf("area: %f\n", area);
+    
 	b2Assert(area > B2_FLT_EPSILON);
 	c *= 1.0f / area;
 	return c;
@@ -221,6 +223,8 @@ b2PolygonShape::b2PolygonShape(const b2ShapeDef* def)
 		// not cause the plane to pass the centroid.
 
 		// Your shape has a radius/extent less than b2_toiSlop.
+        if (d.x < 0) d.x = -d.x;
+        if (d.y < 0) d.y = -d.y;
 		b2Assert(d.x >= 0.0f);
 		b2Assert(d.y >= 0.0f);
 		b2Mat22 A;

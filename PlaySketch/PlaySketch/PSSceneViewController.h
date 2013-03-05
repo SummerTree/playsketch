@@ -40,6 +40,7 @@
 @property(nonatomic,retain) IBOutlet UIButton* startErasingButton;
 @property(nonatomic,retain) IBOutlet UIButton* undoButton;
 @property(nonatomic,retain) IBOutlet UIButton* redoButton;
+@property(nonatomic,retain) IBOutlet UIButton* debugDrawButton;
 @property(nonatomic,retain) PSDrawingDocument* currentDocument;
 @property(nonatomic,retain) PSDrawingGroup* rootGroup;
 @property b2World* world;
@@ -61,6 +62,7 @@
 - (IBAction)markCurrentSelectionNotVisible:(id)sender;
 - (IBAction)undo:(id)sender;
 - (IBAction)redo:(id)sender;
+- (IBAction)drawDebugShape:(id)sender;
 - (void)setPlaying:(BOOL)playing;
 
 // physical system

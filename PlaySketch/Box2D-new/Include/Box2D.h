@@ -57,4 +57,6 @@ For discussion please visit http://www.box2d.org/forum
 #include "../Source/Dynamics/Controllers/b2GravityController.h"
 #include "../Source/Dynamics/Controllers/b2TensorDampingController.h"
 
+#define PTM_RATIO 40.0f
+
 #endif

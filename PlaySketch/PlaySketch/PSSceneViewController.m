@@ -27,7 +27,14 @@
 #import "PSGraphicConstants.h"
 #include "PSContactListener.h"
 #include "DCELMesh.h"
-#include "Triangle.h"
+#include "b2Separator.h"
+#import <OpenGLES/EAGL.h>
+#import <OpenGLES/ES2/gl.h>
+#import <OpenGLES/ES2/glext.h>
+#import "PSOpenGLESHelper.h"
+#import "PSTriangle.h"
+#import "PSPolygon.h"
+#import "PSDebugDrawView.h"
 #import <QuartzCore/QuartzCore.h>
 
 /* Private properties and function */
@@ -35,6 +42,7 @@
 @property(nonatomic)BOOL isSelecting; // If we are selecting instead of drawing
 @property(nonatomic)BOOL isErasing;
 @property(nonatomic)BOOL isReadyToRecord; // If manipulations should be treated as recording
+@property(nonatomic)BOOL isDebugging;
 @property(nonatomic)BOOL isRecording;
 @property(nonatomic,retain) UIPopoverController* penPopoverController;
 @property(nonatomic,retain) UIPopoverController* physicsGlobalPopoverController;
@@ -42,6 +50,7 @@
 @property(nonatomic,retain) PSPenColorViewController* penController;
 @property(nonatomic,retain) PSPhysicsGlobalViewController* physicsGlobalController;
 @property(nonatomic,retain) PSPhysicsStateViewController* physicsStateController;
+@property(nonatomic,retain) PSDebugDrawView* ddv;
 @property(nonatomic) UInt64 currentColor; // the drawing color as an int
 @property(nonatomic) int penWeight;
 @property(nonatomic) int gravity;
@@ -77,8 +86,8 @@
 	self.isReadyToRecord = NO;
 	self.isRecording = NO;
 	self.insideEraseGroup = NO;
+    self.isDebugging = NO;
 	[self startDrawing:nil];
-
 	
 	// Create the manipulator
 	self.manipulator = [[PSSRTManipulator alloc] initAtLocation:CGPointZero];
@@ -107,6 +116,10 @@
 	
 	// initialize our objects to the right time
 	[self.renderingController jumpToTime:self.timelineSlider.value];
+    
+    self.ddv = [[PSDebugDrawView alloc] initWithFrame:CGRectMake(0, 80, 1050, 590)];
+    [self.ddv setUserInteractionEnabled:FALSE];
+    //[self.view addSubview:self.ddv];
     
     // initialize Box2D world
     [self initializeBox2dWorld];
@@ -348,13 +361,26 @@
 	[self refreshInterfaceAfterDataChange:YES selectionChange:YES];
 }
 
+- (IBAction)drawDebugShape:(id)sender
+{
+    if (self.isDebugging) {
+        self.isDebugging = NO;
+        [self.ddv removeFromSuperview];
+    } else {
+        self.isDebugging = YES;
+        [self refreshSimulation];
+        [self.view addSubview:self.ddv];
+    }
+    NSLog(self.isDebugging ? @"Drawing debug shape" : @"Not drawing debug shape");
+}
+
 // physical system
 - (IBAction)showPhysicsStatePopover:(id)sender
 {
     NSLog(@"Physics: ");
     
     NSLog([self.rootGroup topLevelSelectedChild].isSimulate ? @"SIM" : @"NO SIM");
-    NSLog([self.rootGroup topLevelSelectedChild].isSolid ? @"solid" : @"no solid");
+    NSLog([self.rootGroup topLevelSelectedChild].isSolid ? @"SOLID" : @"NO SOLID");
     
     // update physics state on buttons
     [self.physicsStateController setIsSimulate:[self.rootGroup topLevelSelectedChild].isSimulate];
@@ -367,9 +393,18 @@
     PSDrawingGroup* group = [self.rootGroup topLevelSelectedChild];
     CGPoint pnt = [group currentOriginInWorldCoordinates];
     NSLog(@"%f,  %f", pnt.x, pnt.y);
+    if (pnt.x>220) pnt.x -= 50;
+    if (pnt.x<-220) pnt.x += 50;
+    //if (pnt.y>110) pnt.y -= 200;NSLog(@"%f,  %f", pnt.x, pnt.y);
+    
     rect.origin.x = pnt.x + 480; rect.origin.y = pnt.y + 470;
     
-    [self.physicsStatePopoverController presentPopoverFromRect:rect
+    if (pnt.y > 110)
+        [self.physicsStatePopoverController presentPopoverFromRect:rect
+                                                            inView:self.view
+                                          permittedArrowDirections:UIPopoverArrowDirectionDown                                                      animated:YES];
+    else
+        [self.physicsStatePopoverController presentPopoverFromRect:rect
                                                          inView:self.view
                                        permittedArrowDirections:UIPopoverArrowDirectionUp                                                      animated:YES];
 }
@@ -452,9 +487,17 @@
 - (void)initializeBox2dWorld
 {
     b2AABB worldAABB;
-    worldAABB.lowerBound.Set(-500.0f, -500.0f);
-    worldAABB.upperBound.Set(500.0f, 500.0f);
-    self.world = new b2World( worldAABB, b2Vec2(0,10*self.gravity), true );
+    worldAABB.lowerBound.Set(-800.0f, -500.0f);
+    worldAABB.upperBound.Set(800.0f, 500.0f);
+    self.world = new b2World( worldAABB, b2Vec2(0,self.gravity), true );
+    
+    // ground
+//    b2BodyDef groundDef;
+//    groundDef.position.Set(0, 200/PTM_RATIO);
+//    b2Body* groundBody = self.world->CreateBody(&groundDef);
+//    b2PolygonDef groundBox;
+//    groundBox.SetAsBox(800/PTM_RATIO, 10/PTM_RATIO);
+//    groundBody->CreateShape(&groundBox);
 }
 
 /*
@@ -856,6 +899,339 @@
 	[self refreshInterfaceAfterDataChange:YES selectionChange:YES];
 }
 
+- (void)constructDCEL:(DCELMesh*)mesh boundingPoly:(NSMutableArray*)bp width:(int)width
+{
+    // construct DCEL data
+    for (int i = 0; i < bp.count ; i++) {
+        NSValue* val = [bp objectAtIndex:i];
+        CGPoint p1 = [val CGPointValue];
+        
+        // draw the path points
+        //            UIView * dot = [[UIView alloc] initWithFrame:CGRectMake(p1.x+509, p1.y+371, 5, 5)];
+        //            dot.backgroundColor = [UIColor redColor];
+        //            dot.alpha = 0.8;
+        //            [self.view addSubview:dot];
+        
+        if (i == 0) // when it is the starting point
+        {
+            CGPoint p2 = [[bp objectAtIndex:i+1] CGPointValue];
+            DCELVertex* vLeft = new DCELVertex();
+            DCELVertex* vRight = new DCELVertex();
+            
+            // calculate vRight and vLeft
+            CGSize normal = CGSizeMake(p2.y - p1.y, - (p2.x - p1.x));
+            double lengthNor = hypot(normal.width, normal.height);
+            CGSize normalNext = CGSizeMake(normal.width / lengthNor * width,
+                                           normal.height / lengthNor * width);
+            
+            vLeft->coords = *new Vector(p1.x + normalNext.width, p1.y + normalNext.height);
+            vRight->coords = *new Vector(p1.x - normalNext.width, p1.y - normalNext.height);
+            
+            // calculate v
+            float length = sqrtf((p2.x-p1.x)*(p2.x-p1.x) + (p2.y-p1.y)*(p2.y-p1.y));
+            DCELVertex* v = new DCELVertex();
+            v->coords = *new Vector(p1.x+width/length*(p1.x-p2.x), p1.y+width/length*(p1.y-p2.y));
+            
+            mesh->insert(v);
+            mesh->insert(vLeft);
+            mesh->insert(vRight);
+            
+            // add edges to vertices
+            v->AddLeavingEdge(vLeft);
+            v->AddLeavingEdge(vRight);
+            vLeft->AddLeavingEdge(v);
+            vRight->AddLeavingEdge(v);
+        }
+        else if (i == (bp.count - 1))  // when it is the ending point
+        {
+            CGPoint pPre = [[bp objectAtIndex:i-1] CGPointValue];
+            DCELVertex* v = new DCELVertex();
+            DCELVertex* vLeft = new DCELVertex();
+            DCELVertex* vRight = new DCELVertex();
+            DCELVertex* preVLeft = mesh->vertexList->globalNext;
+            DCELVertex* preVRight = mesh->vertexList;
+            
+            // calculate v
+            float length = sqrtf((pPre.x-p1.x)*(pPre.x-p1.x) + (pPre.y-p1.y)*(pPre.y-p1.y));
+            v->coords = *new Vector(p1.x+width/length*(p1.x-pPre.x), p1.y+width/length*(p1.y-pPre.y));
+            
+            // calculate vRight and vLeft
+            CGSize normal = CGSizeMake(p1.y - pPre.y, - (p1.x - pPre.x));
+            double lengthNor = hypot(normal.width, normal.height);
+            CGSize normalNext = CGSizeMake(normal.width / lengthNor * width,
+                                           normal.height / lengthNor * width);
+            
+            vLeft->coords = *new Vector(p1.x + normalNext.width, p1.y + normalNext.height);
+            vRight->coords = *new Vector(p1.x - normalNext.width, p1.y - normalNext.height);
+            
+            // add vertices
+            mesh->insert(vLeft);
+            mesh->insert(v);
+            mesh->insert(vRight);
+            
+            // add edges to vertices
+            vLeft->AddLeavingEdge(v);
+            vRight->AddLeavingEdge(v);
+            preVLeft->AddLeavingEdge(vLeft);
+            preVRight->AddLeavingEdge(vRight);
+            v->AddLeavingEdge(vLeft);
+            v->AddLeavingEdge(vRight);
+            vLeft->AddLeavingEdge(preVLeft);
+            vRight->AddLeavingEdge(preVRight);
+        }
+        else
+        {
+            CGPoint pPre = [[bp objectAtIndex:i-1] CGPointValue];
+            DCELVertex* vLeft = new DCELVertex();
+            DCELVertex* vRight = new DCELVertex();
+            DCELVertex* preVLeft = mesh->vertexList->globalNext;
+            DCELVertex* preVRight = mesh->vertexList;
+            
+            //Calculate the normal
+            CGSize normal = CGSizeMake(p1.y - pPre.y, - (p1.x - pPre.x));
+            double length = hypot(normal.width, normal.height);
+            //if (length < 1) return;
+            CGSize normalNext = CGSizeMake(normal.width / length * width,
+                                           normal.height / length * width);
+            
+            vLeft->coords = *new Vector(p1.x + normalNext.width, p1.y + normalNext.height);
+            vRight->coords = *new Vector(p1.x - normalNext.width, p1.y - normalNext.height);
+            
+            // add vertices
+            mesh->insert(vLeft);
+            mesh->insert(vRight);
+            
+            // add edges to vertices
+            preVLeft->AddLeavingEdge(vLeft);
+            preVRight->AddLeavingEdge(vRight);
+            vLeft->AddLeavingEdge(preVLeft);
+            vRight->AddLeavingEdge(preVRight);
+        }
+    }
+}
+
+- (DCELVertex*)findLexicographicalPoint:(DCELMesh*)mesh
+{
+    // loop through all the points for lexicographical point
+    // & update edges for intersection
+    DCELVertex* head = mesh->vertexList;
+    DCELVertex* startingPoint = head;
+    DCELVertex* lexicoMaxPoint = head;
+
+    int iT = 1;
+    while (head != NULL) {
+        //printf("iT:  %d   COORD: X %f, Y %f\n", iT,head->coords.x,head->coords.y);
+        
+        // go through all the edges and check for intersection
+        DCELHalfEdge* leaving = head->leaving;
+        while (leaving != NULL) {
+            DCELVertex* origin = leaving->origin;
+            DCELVertex* tail = leaving->tail;
+            //printf("    Leaving from X: %f, Y: %f to X: %f, Y: %f\n",
+                   //origin->coords.x, origin->coords.y, tail->coords.x, tail->coords.y);
+            
+            mesh->updateEdges(leaving);
+            
+            leaving = leaving->globalNext;
+        }
+        
+        if (head->coords.x < startingPoint->coords.x
+            || ((head->coords.x - startingPoint->coords.x)<0.00000001
+                && head->coords.y < startingPoint->coords.y))
+            startingPoint = head;
+        
+        if (head->coords.x > startingPoint->coords.x
+            || ((head->coords.x - startingPoint->coords.x)<0.00000001
+                && head->coords.y > startingPoint->coords.y))
+            lexicoMaxPoint = head;
+        
+        // draw all the vertices we get
+        //                UIView * vDotT = [[UIView alloc] initWithFrame:CGRectMake(head->coords.x+509, head->coords.y+371, 5, 5)];
+        //                vDotT.backgroundColor = [UIColor greenColor];
+        //                vDotT.alpha = 0.4;
+        //                [self.view addSubview:vDotT];
+        
+        iT++;
+        mesh->advance(head);
+    }
+    
+    printf("lexicograpically min point: x %f, y %f\n", startingPoint->coords.x, startingPoint->coords.y);
+    printf("lexicograpically max point: x %f, y %f\n", lexicoMaxPoint->coords.x, lexicoMaxPoint->coords.y);
+    
+    return startingPoint;
+}
+
+- (NSMutableArray*)triangulation:(NSMutableArray*)boundaryVertices
+{
+    NSMutableArray* triangles = [[NSMutableArray alloc] initWithCapacity:0];
+    
+    while (boundaryVertices.count > 3) {
+        int earIndex = -1;
+        
+        for (int i = 0; i<boundaryVertices.count ; i++)
+            if ([self IsEar:i vertices:boundaryVertices]) {
+                earIndex = i;
+                break;
+            }
+        
+        if (earIndex == -1) NSLog(@"Error with the outline(no ear)");
+        
+        int under = (earIndex==0)?(boundaryVertices.count-1):(earIndex-1);
+        int over = (earIndex==boundaryVertices.count-1)?0:(earIndex+1);
+        CGPoint ear = [[boundaryVertices objectAtIndex:earIndex] CGPointValue];
+        CGPoint u = [[boundaryVertices objectAtIndex:under] CGPointValue];
+        CGPoint o = [[boundaryVertices objectAtIndex:over] CGPointValue];
+        
+        [triangles addObject:[[PSTriangle alloc] initWithPoints:ear.x Y1:ear.y X2:o.x Y2:o.y X3:u.x Y3:u.y]];
+        
+        [boundaryVertices removeObjectAtIndex:earIndex];
+    }
+    CGPoint first = [[boundaryVertices objectAtIndex:0] CGPointValue];
+    CGPoint second = [[boundaryVertices objectAtIndex:1] CGPointValue];
+    CGPoint third = [[boundaryVertices objectAtIndex:2] CGPointValue];
+    [triangles addObject:[[PSTriangle alloc] initWithPoints:second.x Y1:second.y X2:third.x Y2:third.y X3:first.x Y3:first.y]];
+    
+    printf("Triangle array length %d\n", triangles.count);
+    
+    PSDebugDrawView* ddv = [[PSDebugDrawView alloc] initWithFrame:CGRectMake(0, 80, 1050, 590)];
+    NSMutableArray* head = [[NSMutableArray alloc] initWithCapacity:0];
+    NSMutableArray* tail = [[NSMutableArray alloc] initWithCapacity:0];
+    
+    for (int i = 0; i<triangles.count; i++) {
+        PSTriangle* tri = [triangles objectAtIndex:i];
+        
+         // area of each triangle
+        float s = [self TriangleArea:[tri getX] Y:[tri getY]];
+        printf("Triangle area %f\n", s);
+        
+        for (int32 j = 0; j < 3; j++)
+        {
+            CGPoint vJ = CGPointMake([[[tri getX] objectAtIndex:j] floatValue]+509, [[[tri getY] objectAtIndex:j] floatValue]+291);
+            
+            int vJTargetIndex = (j == 2) ? 0 : (j + 1);
+            CGPoint vJTarget = CGPointMake([[[tri getX] objectAtIndex:vJTargetIndex] floatValue]+509, [[[tri getY] objectAtIndex:vJTargetIndex] floatValue]+291);
+            
+//            [head addObject:[NSValue valueWithCGPoint:vJ]];
+//            [tail addObject:[NSValue valueWithCGPoint:vJTarget]];
+        }
+
+    }
+    [ddv setOrigin:head];
+    [ddv setTarget:tail];
+    [ddv setUserInteractionEnabled:FALSE];
+    //[self.view addSubview:ddv];
+       
+    return triangles;
+}
+
+- (NSMutableArray*)polygonization:(NSMutableArray*)triangles
+{
+    NSMutableArray* polys = [[NSMutableArray alloc] initWithCapacity:0];
+    
+    bool covered[triangles.count];
+    for (int i = 0; i<triangles.count; i++)    covered[i] = false;
+    
+    bool notDone = true;
+    
+    while (notDone) {
+        int currTri = -1;
+        for (int i = 0; i<triangles.count; i++) {
+            if (covered[i]) continue;
+            currTri = i;
+            break;
+        }
+        if (currTri == -1) {
+            notDone = false;
+        } else {
+            PSPolygon* poly = [[PSPolygon alloc] initWithTriangle:[triangles objectAtIndex:currTri]];
+            covered[currTri] = true;
+            for (int j = 0; j<triangles.count; j++) {
+                if (poly.getX.count > 7) break;
+                if (covered[j]) continue;
+                PSPolygon* newP = [poly Add:[triangles objectAtIndex:j]];
+                if (newP == NULL)  {
+                    //printf("newP is NULL\n");
+                    continue;
+                }
+                if ([newP IsConvex]) {
+                    covered[j] = true;
+                    poly = newP;
+                }
+            }
+            
+            [polys addObject:poly];
+        }
+    }
+    
+    return polys;
+}
+
+- (b2PolygonDef)checkAreaOfPolys:(b2PolygonDef)oldShape polys:(NSMutableArray*)polys index:(int)i
+{
+    b2PolygonDef shapeDef = oldShape;
+    float32 area = 0.0f;
+    
+    // pRef is the reference point for forming triangles.
+    // It's location doesn't change the result (except for rounding error).
+    b2Vec2 pRef(0.0f, 0.0f);
+    
+    NSMutableArray* head = [[NSMutableArray alloc] initWithCapacity:0];
+    NSMutableArray* tail = [[NSMutableArray alloc] initWithCapacity:0];
+    //[head addObject:[NSValue valueWithCGPoint:CGPointMake(-400+509, 200+291)]];
+    //[tail addObject:[NSValue valueWithCGPoint:CGPointMake(400+509, 200+291)]];
+    
+    // This code would put the reference point inside the polygon.
+    for (int32 j = 0; j < shapeDef.vertexCount; j++)
+    {
+        CGPoint vJ = CGPointMake([[[[polys objectAtIndex:i] getX] objectAtIndex:j] floatValue]+509, [[[[polys objectAtIndex:i] getY] objectAtIndex:j] floatValue]+291);
+        pRef += *new b2Vec2(vJ.x, vJ.y);
+        
+        int vJTargetIndex = (j == shapeDef.vertexCount - 1) ? 0 : (j + 1);
+        CGPoint vJTarget = CGPointMake([[[[polys objectAtIndex:i] getX] objectAtIndex:vJTargetIndex] floatValue]+509, [[[[polys objectAtIndex:i] getY] objectAtIndex:vJTargetIndex] floatValue]+291);
+        
+        [head addObject:[NSValue valueWithCGPoint:vJ]];
+        [tail addObject:[NSValue valueWithCGPoint:vJTarget]];
+    }
+
+    [self.ddv addToOrigin:head];
+    [self.ddv addToTarget:tail];
+    
+    pRef *= 1.0f / shapeDef.vertexCount;
+    
+    //const float32 inv3 = 1.0f / 3.0f;
+    
+    for (int32 j = 0; j < shapeDef.vertexCount; ++j)
+    {
+        // Triangle vertices.
+        b2Vec2 p1 = pRef;
+        b2Vec2 p2 = *new b2Vec2([[[[polys objectAtIndex:i] getX] objectAtIndex:j] floatValue], [[[[polys objectAtIndex:i] getY] objectAtIndex:j] floatValue]);
+        b2Vec2 p3 = j + 1 < shapeDef.vertexCount ? *new b2Vec2([[[[polys objectAtIndex:i] getX] objectAtIndex:j+1] floatValue], [[[[polys objectAtIndex:i] getY] objectAtIndex:j+1] floatValue]) : *new b2Vec2([[[[polys objectAtIndex:i] getX] objectAtIndex:0] floatValue], [[[[polys objectAtIndex:i] getY] objectAtIndex:0] floatValue]);
+        
+        b2Vec2 e1 = p2 - p1;
+        b2Vec2 e2 = p3 - p1;
+        
+        float32 D = b2Cross(e1, e2);
+        
+        float32 triangleArea = 0.5f * D;
+        area += triangleArea;
+        
+        // Area weighted centroid
+        //c += triangleArea * inv3 * (p1 + p2 + p3);
+    }
+    printf("box2d area %f \n", area);
+    
+    if (area > 0)
+        for (int j = 0; j < shapeDef.vertexCount ; j++)
+            shapeDef.vertices[j].Set([[[[polys objectAtIndex:i] getX] objectAtIndex:j] floatValue]/PTM_RATIO, [[[[polys objectAtIndex:i] getY] objectAtIndex:j] floatValue]/PTM_RATIO);
+    else if (area < 0.0001 && area > 0)
+        return shapeDef;
+    else
+        for (int j = 0; j < shapeDef.vertexCount ; j++)
+            shapeDef.vertices[j].Set([[[[polys objectAtIndex:i] getX] objectAtIndex:shapeDef.vertexCount - 1 - j] floatValue]/PTM_RATIO, [[[[polys objectAtIndex:i] getY] objectAtIndex:shapeDef.vertexCount - 1 - j] floatValue]/PTM_RATIO);
+    
+    return shapeDef;
+}
+
 - (NSMutableArray*)generateOutline:(DCELVertex*)startingPoint
 {
     NSMutableArray* boundaryVertices = [[NSMutableArray alloc] initWithCapacity:0];
@@ -913,7 +1289,7 @@
                 //printf("\ttempNext == n");
                 continue;
             }
-            
+           
             float tempAngle = [self GetRotateAngle:(p->coords.x - c->coords.x)
                                                 y1:(p->coords.y - c->coords.y)
                                                 x2:(tempNext->coords.x - c->coords.x)
@@ -937,10 +1313,7 @@
             break;
     }
     
-    //NSArray* cCWVertexList = [[boundaryVertices reverseObjectEnumerator] allObjects];
-    //boundaryVertices = [NSMutableArray arrayWithArray:cCWVertexList];
-    
-    return boundaryVertices;
+    return [NSMutableArray arrayWithArray:[[boundaryVertices reverseObjectEnumerator] allObjects]];
 }
 
 - (void)addBox2dBody:(PSDrawingGroup*) g
@@ -954,247 +1327,82 @@
         
         // create body in Box2D
         b2BodyDef bodyDef;
-        bodyDef.position.Set(g.positions[0].location.x, g.positions[0].location.y);
+        bodyDef.position.Set(g.positions[0].location.x/PTM_RATIO, g.positions[0].location.y/PTM_RATIO);
         b2Body *body = self.world->CreateBody(&bodyDef);
         
-        b2PolygonDef shapeDef;
-        
-        //shapeDef.SetAsBox([g currentBoundingRect].size.width*0.5f, [g currentBoundingRect].size.height*0.5f);
-        
-        // apply the algorithm with DCEL to get poly outline
+        // init variables for DCEL 
         NSMutableArray* bp = [g currentBoundingPoly];
         DCELMesh* mesh = new DCELMesh();
         int width = [g penWeight];
         
+        // debug info
         printf("\nPATH points count==: %d, penWeight: %d\n", bp.count, width);
+        printf("stroke head: %f, %f\n", [[bp objectAtIndex:0] CGPointValue].x, [[bp objectAtIndex:0] CGPointValue].y);
+        printf("stroke tail: %f, %f\n", [[bp objectAtIndex:bp.count - 1] CGPointValue].x, [[bp objectAtIndex:bp.count - 1] CGPointValue].y);
         
-        // test on self-defined shape with vertices number > 8
-        NSMutableArray* testVertices = [[NSMutableArray alloc] initWithCapacity:0];
-        {
-            [testVertices addObject:[NSValue valueWithCGPoint: CGPointMake(-30, -20)]];
-            [testVertices addObject:[NSValue valueWithCGPoint: CGPointMake(0, -30)]];
-            [testVertices addObject:[NSValue valueWithCGPoint: CGPointMake(30, -20)]];
-            [testVertices addObject:[NSValue valueWithCGPoint: CGPointMake(30, 20)]];
-            [testVertices addObject:[NSValue valueWithCGPoint: CGPointMake(10, 30)]];
-            [testVertices addObject:[NSValue valueWithCGPoint: CGPointMake(-10, 30)]];
-            [testVertices addObject:[NSValue valueWithCGPoint: CGPointMake(-20, 28)]];
-            [testVertices addObject:[NSValue valueWithCGPoint: CGPointMake(-25, 20)]];
-            [testVertices addObject:[NSValue valueWithCGPoint: CGPointMake(-30, 5)]];
-        }
+        // contruct the DCEL from stored outline points
+        [self constructDCEL:mesh boundingPoly:bp width:width];
         
-        testVertices = [self IterativeSimplify:testVertices targetLowNumOfV:5 targetHighNumOfV:8 ErrThresholdL:1 ErrThresholdH:15 increment:2];
-        
-        shapeDef.vertexCount = testVertices.count;
-        for (int i = 0; i < testVertices.count; i++) {
-            NSValue* val = [testVertices objectAtIndex:i];
-            CGPoint p = [val CGPointValue];
-            shapeDef.vertices[i].Set(p.x, p.y);
-            printf("Vertex id: %d, Coordinates: X: %f, Y: %f \n", i, p.x, p.y);
-        }
-        
-        // construct DCEL data
-        for (int i = 0; i < bp.count ; i++) {
-            NSValue* val = [bp objectAtIndex:i];
-            CGPoint p1 = [val CGPointValue];
-            
-            // draw the path points
-            UIView * dot = [[UIView alloc] initWithFrame:CGRectMake(p1.x+509, p1.y+371, 5, 5)];
-            dot.backgroundColor = [UIColor redColor];
-            dot.alpha = 0.4;
-            [self.view addSubview:dot];
-            
-            if (i == 0) // when it is the starting point
-            {
-                CGPoint p2 = [[bp objectAtIndex:i+1] CGPointValue];
-                DCELVertex* vLeft = new DCELVertex();
-                DCELVertex* vRight = new DCELVertex();
-                
-                // calculate vRight and vLeft
-                CGSize normal = CGSizeMake(p2.y - p1.y, - (p2.x - p1.x));
-                double lengthNor = hypot(normal.width, normal.height);
-                CGSize normalNext = CGSizeMake(normal.width / lengthNor * width,
-                                               normal.height / lengthNor * width);
-                
-                vLeft->coords = *new Vector(p1.x + normalNext.width, p1.y + normalNext.height);
-                vRight->coords = *new Vector(p1.x - normalNext.width, p1.y - normalNext.height);
-                
-                // calculate v
-                float length = sqrtf((p2.x-p1.x)*(p2.x-p1.x) + (p2.y-p1.y)*(p2.y-p1.y));
-                DCELVertex* v = new DCELVertex();
-                v->coords = *new Vector(p1.x+width/length*(p1.x-p2.x), p1.y+width/length*(p1.y-p2.y));
-                
-                mesh->insert(v);
-                mesh->insert(vLeft);
-                mesh->insert(vRight);
-                
-                // add edges to vertices
-                v->AddLeavingEdge(vLeft);
-                v->AddLeavingEdge(vRight);
-                vLeft->AddLeavingEdge(v);
-                vRight->AddLeavingEdge(v);
-            }
-            else if (i == (bp.count - 1))  // when it is the ending point
-            {
-                CGPoint pPre = [[bp objectAtIndex:i-1] CGPointValue];
-                DCELVertex* v = new DCELVertex();
-                DCELVertex* vLeft = new DCELVertex();
-                DCELVertex* vRight = new DCELVertex();
-                DCELVertex* preVLeft = mesh->vertexList->globalNext;
-                DCELVertex* preVRight = mesh->vertexList;
-                
-                // calculate v
-                float length = sqrtf((pPre.x-p1.x)*(pPre.x-p1.x) + (pPre.y-p1.y)*(pPre.y-p1.y));
-                v->coords = *new Vector(p1.x+width/length*(p1.x-pPre.x), p1.y+width/length*(p1.y-pPre.y));
-                
-                // calculate vRight and vLeft
-                CGSize normal = CGSizeMake(p1.y - pPre.y, - (p1.x - pPre.x));
-                double lengthNor = hypot(normal.width, normal.height);
-                CGSize normalNext = CGSizeMake(normal.width / lengthNor * width,
-                                               normal.height / lengthNor * width);
-                
-                vLeft->coords = *new Vector(p1.x + normalNext.width, p1.y + normalNext.height);
-                vRight->coords = *new Vector(p1.x - normalNext.width, p1.y - normalNext.height);
-                
-                // add vertices
-                mesh->insert(vLeft);
-                mesh->insert(v);
-                mesh->insert(vRight);
-                
-                // add edges to vertices
-                vLeft->AddLeavingEdge(v);
-                vRight->AddLeavingEdge(v);
-                preVLeft->AddLeavingEdge(vLeft);
-                preVRight->AddLeavingEdge(vRight);
-                v->AddLeavingEdge(vLeft);
-                v->AddLeavingEdge(vRight);
-                vLeft->AddLeavingEdge(preVLeft);
-                vRight->AddLeavingEdge(preVRight);
-            }
-            else
-            {
-                CGPoint pPre = [[bp objectAtIndex:i-1] CGPointValue];
-                DCELVertex* vLeft = new DCELVertex();
-                DCELVertex* vRight = new DCELVertex();
-                DCELVertex* preVLeft = mesh->vertexList->globalNext;
-                DCELVertex* preVRight = mesh->vertexList;
-                
-                //Calculate the normal
-                CGSize normal = CGSizeMake(p1.y - pPre.y, - (p1.x - pPre.x));
-                double length = hypot(normal.width, normal.height);
-                //if (length < 1) return;
-                CGSize normalNext = CGSizeMake(normal.width / length * width,
-                                               normal.height / length * width);
-                
-                vLeft->coords = *new Vector(p1.x + normalNext.width, p1.y + normalNext.height);
-                vRight->coords = *new Vector(p1.x - normalNext.width, p1.y - normalNext.height);
-                
-                // add vertices
-                mesh->insert(vLeft);
-                mesh->insert(vRight);
-                
-                // add edges to vertices
-                preVLeft->AddLeavingEdge(vLeft);
-                preVRight->AddLeavingEdge(vRight);
-                vLeft->AddLeavingEdge(preVLeft);
-                vRight->AddLeavingEdge(preVRight);
-            }
-        }
-        
-        // loop through all the points for lexicographical point
-        // & update edges for intersection
-        DCELVertex* head = mesh->vertexList;
-        DCELVertex* startingPoint = head;
-        int iT = 1;
-        while (head != NULL) {
-            printf("iT:  %d   COORD: X %f, Y %f\n", iT,head->coords.x,head->coords.y);
-            
-            // go through all the edges and check for intersection
-            DCELHalfEdge* leaving = head->leaving;
-            while (leaving != NULL) {
-                DCELVertex* origin = leaving->origin;
-                DCELVertex* tail = leaving->tail;
-                printf("    Leaving from X: %f, Y: %f to X: %f, Y: %f\n",
-                       origin->coords.x, origin->coords.y, tail->coords.x, tail->coords.y);
-                
-                mesh->updateEdges(leaving);
-                
-                leaving = leaving->globalNext;
-            }
-            
-            if (head->coords.x < startingPoint->coords.x
-                || ((head->coords.x - startingPoint->coords.x)<0.00000001
-                    && head->coords.y < startingPoint->coords.y))
-                startingPoint = head;
-            
-            // draw all the vertices we get
-            //                UIView * vDotT = [[UIView alloc] initWithFrame:CGRectMake(head->coords.x+509, head->coords.y+371, 5, 5)];
-            //                vDotT.backgroundColor = [UIColor greenColor];
-            //                vDotT.alpha = 0.4;
-            //                [self.view addSubview:vDotT];
-            
-            iT++;
-            mesh->advance(head);
-        }
-        
-        printf("position of lexicograpically point: x %f, y %f\n", startingPoint->coords.x, startingPoint->coords.y);
+        // find lexicographical point
+        DCELVertex* startingPoint = [self findLexicographicalPoint:mesh];
         
         // generate outline
         NSMutableArray* boundaryVertices = [self generateOutline:startingPoint];
         
-        // draw outline points with green color
-        for (int i = 0; i<boundaryVertices.count; i++) {
-            CGPoint p = [[boundaryVertices objectAtIndex:i] CGPointValue];
-            
-            UIView * vDotT = [[UIView alloc] initWithFrame:CGRectMake(p.x+509, p.y+371, 5, 5)];
-            vDotT.backgroundColor = [UIColor greenColor];
-            vDotT.alpha = 0.3+0.7*i/boundaryVertices.count;
-            [self.view addSubview:vDotT];
-        }
-        
-        switch ([g.material integerValue]) {
-            case 1:
-                // metal
-                shapeDef.density = 4.0;
-                shapeDef.friction = 0.3;
-                shapeDef.restitution = 0.0;
-                break;
-            case 2:
-                // wood
-                shapeDef.density = 1.0;
-                shapeDef.friction = 0.7;
-                shapeDef.restitution = 0.3;
-                break;
-            case 3:
-                // rubber
-                shapeDef.density = 1.0;
-                shapeDef.friction = 0.4;
-                shapeDef.restitution = 1.0;
-                break;
+        // simplify the polygon shape by reducing the number of vertices
+        boundaryVertices = [self IterativeSimplify:boundaryVertices targetLowNumOfV:10 targetHighNumOfV:20 ErrThresholdL:1 ErrThresholdH:20 increment:2];
                 
-            default:
-                break;
-        }
+        // Triangulation
+        NSMutableArray* triangles = [self triangulation:boundaryVertices];
         
-        if (!g.isStatic)
-            shapeDef.density = 0;
-        
-        body->CreateShape(&shapeDef);
-        body->SetMassFromShapes();
-        
-        shapeDef.vertexCount = testVertices.count;
-        for (int i = 0; i < testVertices.count; i++) {
-            NSValue* val = [testVertices objectAtIndex:i];
-            CGPoint p = [val CGPointValue];
+        // polygonization
+        NSMutableArray* polys = [self polygonization:triangles];
+
+        // create box2d shape for each small polygon
+        for (int i = 0; i<polys.count; i++) {
+            b2PolygonDef shapeDef;
+            shapeDef.vertexCount = [[polys objectAtIndex:i] getX].count;
             
-            // drawing for debug
-            //                if (debugging) {
-            //                    UIView * vDot = [[UIView alloc] initWithFrame:CGRectMake(p.x+body->GetWorldCenter().x+509, p.y+body->GetWorldCenter().y+371, 5, 5)];
-            //                    vDot.backgroundColor = [UIColor blackColor];
-            //                    vDot.alpha = 0.4;
-            //                    [self.view addSubview:vDot];
-            //                }
+            // correct the sequence of vertices of the polygon by checking area
+            // using the method from box2d
+            shapeDef = [self checkAreaOfPolys:shapeDef polys:polys index:i];
+            
+            // calculate the area manually
+            float area = [self PrintPolyArea:[[polys objectAtIndex:i] getX] Y:[[polys objectAtIndex:i] getY]];
+            if (area < 0.01) continue;
+            
+            // set physical material
+            switch ([g.material integerValue]) {
+                case 1:
+                    // metal
+                    shapeDef.density = 4.0;
+                    shapeDef.friction = 0.3;
+                    shapeDef.restitution = 0.0;
+                    break;
+                
+                case 3:
+                    // rubber
+                    shapeDef.density = 1.0;
+                    shapeDef.friction = 0.4;
+                    shapeDef.restitution = 1.0;
+                    break;
+                    
+                default:
+                    // wood
+                    shapeDef.density = 1.0;
+                    shapeDef.friction = 0.7;
+                    shapeDef.restitution = 0.3;
+                    break;
+            }
+            
+            if (!g.isStatic)
+                shapeDef.density = 0;
+            
+            body->CreateShape(&shapeDef);
         }
         
+        body->SetMassFromShapes();
+    
         // index will be used to refer simulation results back
         body->SetUserData((void*)g.box2dBodyIndex);
         
@@ -1202,7 +1410,7 @@
         [g setBox2dBodyIndex:-1];
     }
     
-    printf("index: %d\n", g.box2dBodyIndex);
+    printf("box2d body index: %d\n", g.box2dBodyIndex);
 }
 
 - (void)simulateBox2dWorld:(float)timeStep vIter:(int)vIter pIter:(int)pIter
@@ -1217,7 +1425,7 @@
             int index = (int)b->GetUserData();
             
             if (self.wind != 0)
-                b->ApplyForce(b2Vec2(100000*self.wind, 0), b->GetPosition());
+                b->ApplyForce(b2Vec2(self.wind, 0), b->GetPosition());
             
             [self.rootGroup applyToAllSubTrees:^(PSDrawingGroup* g, BOOL s) {
                 if (index == g.box2dBodyIndex)
@@ -1226,8 +1434,8 @@
                     float32 angle = b->GetAngle();
                     
                     SRTPosition position;
-                    position.location.x = pos.x;
-                    position.location.y = pos.y;
+                    position.location.x = pos.x*PTM_RATIO;
+                    position.location.y = pos.y*PTM_RATIO;
                     position.scale = 1;
                     position.rotation = angle;
                     position.timeStamp = i*timeStep;
@@ -1250,6 +1458,7 @@
 - (void)refreshSimulation
 {
     [self initializeBox2dWorld];
+    printf("PTM_RATIO: %f\n", PTM_RATIO);
     
     ContactData* _contactData = new ContactData();
     self.world->SetContactListener(&_contactData->cntactListener);
@@ -1262,10 +1471,11 @@
         [self addBox2dBody:g];
     }];
     
+    // if no body needs to be simulated
     if (self.box2dBodyCount == 0)
         return;
     
-    self.world->SetGravity(b2Vec2(0,10*self.gravity));
+    self.world->SetGravity(b2Vec2(0,self.gravity));
     
     // simulate and send back the result: position, angle and etc.
     float timeStep = 1.0f/30.0f;
@@ -1275,6 +1485,38 @@
     
     // release the Box2D world
     delete self.world;
+}
+
+- (float)PrintPolyArea:(NSMutableArray*)x Y:(NSMutableArray*)y
+{
+    float area = 0.0;
+    while (x.count>=3) {
+        area += [self TriangleArea:x Y:y];
+        [x removeObjectAtIndex:1];
+        [y removeObjectAtIndex:1];
+    }
+    
+    //printf("Poly Area %f\n", area);
+    
+    return area;
+}
+
+- (float)TriangleArea:(NSMutableArray*)x Y:(NSMutableArray*)y
+{
+    CGPoint v1, v2, v3;
+    v1.x = [[x objectAtIndex:0] floatValue];
+    v1.y = [[y objectAtIndex:0] floatValue];
+    v2.x = [[x objectAtIndex:1] floatValue];
+    v2.y = [[y objectAtIndex:1] floatValue];
+    v3.x = [[x objectAtIndex:2] floatValue];
+    v3.y = [[y objectAtIndex:2] floatValue];
+    
+    float a = [self DistanceOfTwoPoints:v1 Second:v2];
+    float b = [self DistanceOfTwoPoints:v2 Second:v3];
+    float c = [self DistanceOfTwoPoints:v1 Second:v3];
+    
+    float l = (a + b + c) / 2;
+    return sqrtf(l * (l-a) * (l-b) * (l-c));
 }
 
 - (BOOL)IsEar:(int)i vertices:(NSMutableArray*)v
@@ -1315,11 +1557,13 @@
     CGPoint vUpper = [[v objectAtIndex:upper] CGPointValue];
     CGPoint vLower = [[v objectAtIndex:lower] CGPointValue];
     
-    Triangle* myTri = new Triangle(vI.x,vI.y,vUpper.x,vUpper.y,vLower.x,vLower.y);
+    PSTriangle* myTri = [PSTriangle alloc];
+    myTri = [myTri initWithPoints:vI.x Y1:vI.y X2:vUpper.x Y2:vUpper.y X3:vLower.x Y3:vLower.y];
+    
     for (int j=0; j<v.count; ++j){
         if (j==i || j == lower || j == upper) continue;
         CGPoint vJ = [[v objectAtIndex:j] CGPointValue];
-        if (myTri->isInside(vJ.x,vJ.y)) return false;
+        if ([myTri IsInside:vJ.x Y:vJ.y]) return false;
     }
     return true;
 }

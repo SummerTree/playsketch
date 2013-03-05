@@ -101,7 +101,7 @@ void* b2BlockAllocator::Allocate(int32 size)
 	if (size == 0)
 		return NULL;
 
-	//b2Assert(0 < size && size <= b2_maxBlockSize);
+	b2Assert(0 < size && size <= b2_maxBlockSize);
     if (size > b2_maxBlockSize)
         size = b2_maxBlockSize;
 

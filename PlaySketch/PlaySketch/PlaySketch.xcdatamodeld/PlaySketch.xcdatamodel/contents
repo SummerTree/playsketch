@@ -21,12 +21,13 @@
     <entity name="PSDrawingLine" representedClassName="PSDrawingLine" syncable="YES">
         <attribute name="color" optional="YES" attributeType="Integer 64" defaultValueString="65535" syncable="YES"/>
         <attribute name="pathPointsAsData" optional="YES" attributeType="Binary" syncable="YES"/>
+        <attribute name="penWeight" optional="YES" attributeType="Integer 16" defaultValueString="0" syncable="YES"/>
         <attribute name="pointsAsData" optional="YES" attributeType="Binary" syncable="YES"/>
         <relationship name="group" optional="YES" minCount="1" maxCount="1" deletionRule="Nullify" destinationEntity="PSDrawingGroup" inverseName="drawingLines" inverseEntity="PSDrawingGroup" syncable="YES"/>
     </entity>
     <elements>
         <element name="PSDrawingDocument" positionX="-11" positionY="189" width="128" height="105"/>
         <element name="PSDrawingGroup" positionX="160" positionY="192" width="128" height="195"/>
-        <element name="PSDrawingLine" positionX="358" positionY="207" width="128" height="105"/>
+        <element name="PSDrawingLine" positionX="358" positionY="207" width="128" height="120"/>
     </elements>
 </model>

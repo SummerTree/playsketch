@@ -12,6 +12,8 @@
 		373277ED16917A010053A968 /* DCELVertex.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 373277EB16917A010053A968 /* DCELVertex.cpp */; };
 		373277F016917A0F0053A968 /* Vector.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 373277EE16917A0F0053A968 /* Vector.cpp */; };
 		373277F316917A1B0053A968 /* HalfEdgeList.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 373277F116917A1B0053A968 /* HalfEdgeList.cpp */; };
+		3733A82D16DCA9BF00FFA98F /* b2Separator.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3733A82B16DCA9BF00FFA98F /* b2Separator.cpp */; };
+		3736AB0816C01ED100488DB0 /* PSPolygon.m in Sources */ = {isa = PBXBuildFile; fileRef = 3736AB0716C01ED100488DB0 /* PSPolygon.m */; };
 		37563D5D163EBA64005D42BF /* PSPhysicsStateViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 37563D5C163EBA64005D42BF /* PSPhysicsStateViewController.m */; };
 		375709CB163BF57B00F2998B /* temp_Physics.png in Resources */ = {isa = PBXBuildFile; fileRef = 375709CA163BF57B00F2998B /* temp_Physics.png */; };
 		375709D4163BF57B00F2998B /* temp_Globals.png in Resources */ = {isa = PBXBuildFile; fileRef = 375709CD163BF57B00F2998B /* temp_Globals.png */; };
@@ -64,7 +66,8 @@
 		3765EFCE164927A700AC76C4 /* b2PulleyJoint.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3765EFA2164927A700AC76C4 /* b2PulleyJoint.cpp */; };
 		3765EFCF164927A700AC76C4 /* b2RevoluteJoint.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3765EFA4164927A700AC76C4 /* b2RevoluteJoint.cpp */; };
 		3765EFD0164927A700AC76C4 /* Makefile in Sources */ = {isa = PBXBuildFile; fileRef = 3765EFA6164927A700AC76C4 /* Makefile */; };
-		3783CABB16AEE56500B360B1 /* Triangle.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3783CAB916AEE56500B360B1 /* Triangle.cpp */; };
+		3770CF4316C022C500E23509 /* PSTriangle.m in Sources */ = {isa = PBXBuildFile; fileRef = 3770CF4216C022C500E23509 /* PSTriangle.m */; };
+		378190AE16D271D900AE895F /* PSDebugDrawView.m in Sources */ = {isa = PBXBuildFile; fileRef = 378190AD16D271D800AE895F /* PSDebugDrawView.m */; };
 		379DC667163CD8530074AF6B /* temp_gravity_high.png in Resources */ = {isa = PBXBuildFile; fileRef = 379DC662163CD8530074AF6B /* temp_gravity_high.png */; };
 		379DC668163CD8530074AF6B /* temp_gravity_low.png in Resources */ = {isa = PBXBuildFile; fileRef = 379DC663163CD8530074AF6B /* temp_gravity_low.png */; };
 		379DC669163CD8530074AF6B /* temp_gravity_medium.png in Resources */ = {isa = PBXBuildFile; fileRef = 379DC664163CD8530074AF6B /* temp_gravity_medium.png */; };
@@ -169,6 +172,10 @@
 		373277EF16917A0F0053A968 /* Vector.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Vector.h; sourceTree = "<group>"; };
 		373277F116917A1B0053A968 /* HalfEdgeList.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = HalfEdgeList.cpp; sourceTree = "<group>"; };
 		373277F216917A1B0053A968 /* HalfEdgeList.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = HalfEdgeList.h; sourceTree = "<group>"; };
+		3733A82B16DCA9BF00FFA98F /* b2Separator.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = b2Separator.cpp; sourceTree = "<group>"; };
+		3733A82C16DCA9BF00FFA98F /* b2Separator.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = b2Separator.h; sourceTree = "<group>"; };
+		3736AB0616C01ED100488DB0 /* PSPolygon.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PSPolygon.h; sourceTree = "<group>"; };
+		3736AB0716C01ED100488DB0 /* PSPolygon.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = PSPolygon.m; sourceTree = "<group>"; };
 		37563D5B163EBA64005D42BF /* PSPhysicsStateViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = PSPhysicsStateViewController.h; path = PlaySketch/PSPhysicsStateViewController.h; sourceTree = "<group>"; };
 		37563D5C163EBA64005D42BF /* PSPhysicsStateViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = PSPhysicsStateViewController.m; path = PlaySketch/PSPhysicsStateViewController.m; sourceTree = "<group>"; };
 		375709CA163BF57B00F2998B /* temp_Physics.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = temp_Physics.png; sourceTree = "<group>"; };
@@ -181,6 +188,7 @@
 		375709D3163BF57B00F2998B /* temp_Sim.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = temp_Sim.png; sourceTree = "<group>"; };
 		375709DB163BF57B00F2998B /* PSPhysicsGlobalViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = PSPhysicsGlobalViewController.h; path = PlaySketch/PSPhysicsGlobalViewController.h; sourceTree = "<group>"; };
 		375709DC163BF57B00F2998B /* PSPhysicsGlobalViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = PSPhysicsGlobalViewController.m; path = PlaySketch/PSPhysicsGlobalViewController.m; sourceTree = "<group>"; };
+		3763E61916D23FF20037FF46 /* PSOpenGLESHelper.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PSOpenGLESHelper.h; sourceTree = "<group>"; };
 		3765EF4C164927A700AC76C4 /* Box2D.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Box2D.h; sourceTree = "<group>"; };
 		3765EF4F164927A700AC76C4 /* b2BroadPhase.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = b2BroadPhase.cpp; sourceTree = "<group>"; };
 		3765EF50164927A700AC76C4 /* b2BroadPhase.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = b2BroadPhase.h; sourceTree = "<group>"; };
@@ -264,8 +272,10 @@
 		3765EFA4164927A700AC76C4 /* b2RevoluteJoint.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = b2RevoluteJoint.cpp; sourceTree = "<group>"; };
 		3765EFA5164927A700AC76C4 /* b2RevoluteJoint.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = b2RevoluteJoint.h; sourceTree = "<group>"; };
 		3765EFA6164927A700AC76C4 /* Makefile */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.make; path = Makefile; sourceTree = "<group>"; };
-		3783CAB916AEE56500B360B1 /* Triangle.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Triangle.cpp; sourceTree = "<group>"; };
-		3783CABA16AEE56500B360B1 /* Triangle.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Triangle.h; sourceTree = "<group>"; };
+		3770CF4116C022C500E23509 /* PSTriangle.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PSTriangle.h; sourceTree = "<group>"; };
+		3770CF4216C022C500E23509 /* PSTriangle.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = PSTriangle.m; sourceTree = "<group>"; };
+		378190AC16D271D800AE895F /* PSDebugDrawView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PSDebugDrawView.h; sourceTree = "<group>"; };
+		378190AD16D271D800AE895F /* PSDebugDrawView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = PSDebugDrawView.m; sourceTree = "<group>"; };
 		379DC662163CD8530074AF6B /* temp_gravity_high.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = temp_gravity_high.png; sourceTree = "<group>"; };
 		379DC663163CD8530074AF6B /* temp_gravity_low.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = temp_gravity_low.png; sourceTree = "<group>"; };
 		379DC664163CD8530074AF6B /* temp_gravity_medium.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = temp_gravity_medium.png; sourceTree = "<group>"; };
@@ -423,6 +433,15 @@
 				373277F216917A1B0053A968 /* HalfEdgeList.h */,
 			);
 			name = DCEL;
+			sourceTree = "<group>";
+		};
+		3733A82916DCA98600FFA98F /* b2Seperator */ = {
+			isa = PBXGroup;
+			children = (
+				3733A82B16DCA9BF00FFA98F /* b2Separator.cpp */,
+				3733A82C16DCA9BF00FFA98F /* b2Separator.h */,
+			);
+			name = b2Seperator;
 			sourceTree = "<group>";
 		};
 		3765EF4B164927A700AC76C4 /* Include */ = {
@@ -583,8 +602,10 @@
 		3783CAB716AEE53700B360B1 /* EarClipping */ = {
 			isa = PBXGroup;
 			children = (
-				3783CAB916AEE56500B360B1 /* Triangle.cpp */,
-				3783CABA16AEE56500B360B1 /* Triangle.h */,
+				3736AB0616C01ED100488DB0 /* PSPolygon.h */,
+				3736AB0716C01ED100488DB0 /* PSPolygon.m */,
+				3770CF4116C022C500E23509 /* PSTriangle.h */,
+				3770CF4216C022C500E23509 /* PSTriangle.m */,
 			);
 			name = EarClipping;
 			sourceTree = "<group>";
@@ -605,6 +626,7 @@
 				462E88491613FB430078F336 /* PSGraphicConstants.h */,
 				37AD0D711655523D00932CD7 /* PSContactListener.h */,
 				37AD0D721655523D00932CD7 /* PSContactListener.mm */,
+				3763E61916D23FF20037FF46 /* PSOpenGLESHelper.h */,
 			);
 			name = Helpers;
 			sourceTree = "<group>";
@@ -699,6 +721,8 @@
 				468E2A2C15C61C0600AA20D2 /* PSGroupOverlayButtons.m */,
 				464A4F3B15DCAFD4008A59DF /* PSMotionPathView.h */,
 				464A4F3C15DCAFD4008A59DF /* PSMotionPathView.m */,
+				378190AC16D271D800AE895F /* PSDebugDrawView.h */,
+				378190AD16D271D800AE895F /* PSDebugDrawView.m */,
 			);
 			name = Interface;
 			path = ..;
@@ -780,6 +804,7 @@
 		46F7A64115B014E700C7B374 /* Supporting Files */ = {
 			isa = PBXGroup;
 			children = (
+				3733A82916DCA98600FFA98F /* b2Seperator */,
 				3783CAB716AEE53700B360B1 /* EarClipping */,
 				373277E3169179A10053A968 /* DCEL */,
 				469E009C15C2438000EE7EC9 /* Images */,
@@ -1052,7 +1077,10 @@
 				373277ED16917A010053A968 /* DCELVertex.cpp in Sources */,
 				373277F016917A0F0053A968 /* Vector.cpp in Sources */,
 				373277F316917A1B0053A968 /* HalfEdgeList.cpp in Sources */,
-				3783CABB16AEE56500B360B1 /* Triangle.cpp in Sources */,
+				3736AB0816C01ED100488DB0 /* PSPolygon.m in Sources */,
+				3770CF4316C022C500E23509 /* PSTriangle.m in Sources */,
+				378190AE16D271D900AE895F /* PSDebugDrawView.m in Sources */,
+				3733A82D16DCA9BF00FFA98F /* b2Separator.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
